@@ -103,7 +103,30 @@ npm run mock:server
 4. Во втором терминале выполните `npm run cli -- --generate 100 ./generated-offers.tsv http://localhost:3000/offers`.
 5. Импортируйте данные: `npm run cli -- --import ./generated-offers.tsv`.
 
-На данном этапе база данных и переменные окружения для CLI не требуются: адрес JSON-сервера и путь к файлу передаются аргументами.
+На данном этапе CLI ещё не подключается к базе данных: адрес JSON-сервера и путь к файлу передаются аргументами.
+
+### Запуск MongoDB в Docker
+
+Установите и запустите Docker Desktop с поддержкой Docker Compose. Из корня проекта выполните:
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Файл `docker-compose.yml` запускает актуальный официальный образ `mongo:latest` (вместо устаревшей 4.2 из примера задания) и mongo-express 1.0.2. Поле `version` не требуется современному Docker Compose. Интерфейс mongo-express запускается после успешной проверки готовности базы. Для обновления образов выполните `docker compose pull`, затем `docker compose up -d`.
+
+MongoDB доступна по адресу `mongodb://admin:test@127.0.0.1:27017/?authSource=admin`. Веб-интерфейс: `http://localhost:8081`, логин `admin`, пароль `test`. Оба порта доступны только с локального компьютера. Учётные данные в Compose предназначены для локальной разработки.
+
+Проверить подключение с аутентификацией:
+
+```bash
+docker compose exec db mongosh --username admin --password test --authenticationDatabase admin --quiet --eval 'db.adminCommand({ping: 1})'
+```
+
+Ответ должен содержать `ok: 1`. Посмотреть логи можно командой `docker compose logs --tail=50 db db_ui`. Остановить и удалить контейнеры — `docker compose down`. Данные сохраняются в именованном томе `six-cities_data` и доступны при следующем запуске. Команда `docker compose down -v` удаляет также том и все данные базы.
+
+`MONGO_INITDB_ROOT_USERNAME=admin` и `MONGO_INITDB_ROOT_PASSWORD=test` задают пользователя при первом запуске с пустым томом. При смене этих значений обновите также параметры `ME_CONFIG_MONGODB_ADMINUSERNAME`, `ME_CONFIG_MONGODB_ADMINPASSWORD` и `ME_CONFIG_MONGODB_URL`. Изменение переменных не меняет пароль пользователя в уже созданной базе. `ME_CONFIG_BASICAUTH_USERNAME=admin` и `ME_CONFIG_BASICAUTH_PASSWORD=test` задают отдельный вход в веб-интерфейс.
 
 ### Проверка большого файла
 
