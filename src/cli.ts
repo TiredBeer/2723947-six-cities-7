@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+import 'reflect-metadata';
 import {readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import chalk from 'chalk';
-import {Readable, Writable} from 'node:stream';
-import {pipeline} from 'node:stream/promises';
-import {readOffers} from './tsv-file-reader.js';
+import {ImportOffers} from './import-offers.js';
+import {Component} from './shared/di/component.js';
+import {container} from './shared/di/container.js';
 import {generateOffers} from './offer-generator.js';
 
 const packagePath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json');
@@ -15,23 +16,8 @@ function printHelp(): void {
   console.log(chalk.dim('Использование: npm run cli -- --<command> [аргументы]'));
   console.log(`${chalk.green('--help')}                         показать справку`);
   console.log(`${chalk.green('--version')}                      показать версию из package.json`);
-  console.log(`${chalk.green('--import <path>')}                прочитать TSV и вывести предложения`);
+  console.log(`${chalk.green('--import <path> <mongodb-uri>')}  сохранить предложения из TSV в MongoDB`);
   console.log(`${chalk.green('--generate <n> <path> <url>')}     сгенерировать TSV из данных JSON-сервера`);
-}
-
-async function importOffers(path: string): Promise<void> {
-  let count = 0;
-  async function* results(): AsyncGenerator<string> {
-    for await (const offer of readOffers(path)) {
-      yield `${chalk.green(`Предложение ${++count}:`)}\n${JSON.stringify(offer)}\n`;
-    }
-    yield `${chalk.cyan(`Импортировано предложений: ${count}`)}\n`;
-  }
-  await pipeline(Readable.from(results()), new Writable({
-    write(chunk, encoding, callback) {
-      process.stdout.write(chunk, encoding, callback);
-    },
-  }));
 }
 
 async function main(): Promise<void> {
@@ -47,10 +33,10 @@ async function main(): Promise<void> {
       return;
     }
     case '--import': {
-      if (args.length !== 1) {
-        throw new Error('Укажите путь к TSV-файлу: --import <path>');
+      if (args.length !== 2 || !/^mongodb(?:\+srv)?:\/\//.test(args[1])) {
+        throw new Error('Укажите путь к TSV-файлу и URI MongoDB: --import <path> <mongodb-uri>');
       }
-      await importOffers(args[0]);
+      await container.get<ImportOffers>(Component.ImportOffers).execute(args[0], args[1]);
       return;
     }
     case '--generate': {

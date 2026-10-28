@@ -69,9 +69,6 @@ test('generation produces the requested number of valid offers and preserves cit
       const before = await readFile(path);
       await assert.rejects(generateOffers(1, path, url), {code: 'EEXIST'});
       assert.deepEqual(await readFile(path), before);
-      const result = await cli(['--import', path]);
-      assert.equal(result.code, 0);
-      assert.match(result.stdout, /Импортировано предложений: 100/);
     });
   });
 });
@@ -108,7 +105,7 @@ test('reader handles CRLF, BOM, UTF-8 across chunks and final line without a new
 });
 
 test('CLI reports argument and file errors with a nonzero exit code', async () => {
-  for (const args of [['--generate'], ['--generate', '0', 'x.tsv', 'http://localhost'], ['--generate', '1.5', 'x.tsv', 'http://localhost'], ['--generate', '-1', 'x.tsv', 'http://localhost'], ['--import', '/missing-six-cities.tsv']]) {
+  for (const args of [['--generate'], ['--generate', '0', 'x.tsv', 'http://localhost'], ['--generate', '1.5', 'x.tsv', 'http://localhost'], ['--generate', '-1', 'x.tsv', 'http://localhost'], ['--import', '/missing-six-cities.tsv'], ['--import', 'mocks/offers.tsv', 'http://localhost']]) {
     const result = await cli(args);
     assert.equal(result.code, 1);
     assert.match(result.stderr, /Ошибка:/);
